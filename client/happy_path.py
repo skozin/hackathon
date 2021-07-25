@@ -65,7 +65,6 @@ def hit_with_a_hammer(resp):
     return r_json
 
 
-
 def decrypt_message(payload, key):
     print('pk', payload, key)
 
@@ -81,6 +80,15 @@ def decrypt_message(payload, key):
     )
 
     return json.loads(decrypted_payload.decode('utf-8'))
+
+
+def get_sign_request(rpc_id, tx):
+    return {
+        'id': rpc_id,
+        'jsonrpc': '2.0',
+        'method': 'eth_signTransaction',
+        'params': [tx]
+    }
 
 
 async def wc_test():
@@ -145,9 +153,37 @@ async def wc_test():
 
         print('accounts', decrypted_payload['result']['accounts'][0])
 
+        account = decrypted_payload['result']['accounts'][0]
+        nounce = 10
 
         ack_message = get_websocket_message(peer_id, 'ack', '')
         await websocket.send(json.dumps(ack_message))
+
+        tx = {
+            'from': account,
+            'to': '0x89D24A7b4cCB1b6fAA2625Fe562bDd9A23260359',
+            'data': '0x',
+            'gasPrice': '0x02540be400',
+            'gas': '0x9c40',
+            'value': '0x00',
+            'nonce': '0x0114',
+        }
+        sign_request = get_sign_request(rpc_id, tx)
+        rpc_id = rpc_id + 1
+
+        sign_request_string = json.dumps(sign_request)
+        sign_request_string_bytes = b'' + bytearray(sign_request_string, 'utf8')
+
+        payload = crypto.encrypt(sign_request_string_bytes, key)
+
+        payload['data'] = payload['data'].hex()
+        payload['hmac'] = payload['hmac'].hex()
+        payload['iv'] = payload['iv'].hex()
+
+        sign_message = get_websocket_message(peer_id, 'pub', json.dumps(payload))
+
+        await websocket.send(json.dumps(sign_message))
+
 
 
 asyncio.get_event_loop().run_until_complete(wc_test())
