@@ -4,7 +4,7 @@ import asyncio
 import websockets
 import urllib.parse
 import crypto
-import re
+import time
 
 
 wc_bridge_uri = 'wss://uniswap.bridge.walletconnect.org/?env=browser&host=app.uniswap.org&protocol=wc&version=1'
@@ -86,7 +86,7 @@ def get_sign_request(rpc_id, tx):
     return {
         'id': rpc_id,
         'jsonrpc': '2.0',
-        'method': 'eth_signTransaction',
+        'method': 'eth_sendTransaction',
         'params': [tx]
     }
 
@@ -152,9 +152,12 @@ async def wc_test():
         print('decrypted_payload', decrypted_payload)
 
         account = decrypted_payload['result']['accounts'][0]
+        new_peer_id = decrypted_payload['result']['peerId']
         nounce = 10
 
         print('account', account)
+
+        name = input('Sign tx? ')
 
         ack_message = get_websocket_message(peer_id, 'ack', '')
         await websocket.send(json.dumps(ack_message))
@@ -162,12 +165,10 @@ async def wc_test():
         tx = {
             'from': account,
             'to': '0x89D24A7b4cCB1b6fAA2625Fe562bDd9A23260359',
-            'data': '0x',
-            'gasPrice': '0x02540be400',
-            'gas': '0x9c40',
-            'value': '0x00',
-            'nonce': '0x0114',
+            'value':"0x10",
+            'data':"0x"
         }
+
         print('tx', tx)
         sign_request = get_sign_request(rpc_id, tx)
         rpc_id = rpc_id + 1
@@ -181,7 +182,7 @@ async def wc_test():
         payload['hmac'] = payload['hmac'].hex()
         payload['iv'] = payload['iv'].hex()
 
-        sign_message = get_websocket_message(peer_id, 'pub', json.dumps(payload), False)
+        sign_message = get_websocket_message(new_peer_id, 'pub', json.dumps(payload), False)
 
         print('sign_message', sign_message)
         print('sign_message', json.dumps(sign_message))
