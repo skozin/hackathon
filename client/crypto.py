@@ -13,7 +13,7 @@ def encrypt(raw, key):
   iv = Random.new().read(AES.block_size)
   cipher = AES.new(key, AES.MODE_CBC, iv)
   data = cipher.encrypt(pkcs7_pad(raw, AES.block_size))
-  hmac = hmac_sha256_sign(key, data + iv)
+  hmac = hmac_sha256_sign(data + iv, key)
   return {
     'data': data,
     'hmac': hmac,
@@ -22,7 +22,7 @@ def encrypt(raw, key):
 
 
 def decrypt(data, iv, hmac, key):
-  expected_hmac = hmac_sha256_sign(key, data + iv)
+  expected_hmac = hmac_sha256_sign(data + iv, key)
   if hmac != expected_hmac:
       raise ValueError('HMAC verification failed')
   cipher = AES.new(key, AES.MODE_CBC, iv)
