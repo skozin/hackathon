@@ -151,10 +151,10 @@ async def wc_test():
         decrypted_payload = decrypt_message(json_resp['payload'], key)
         print('decrypted_payload', decrypted_payload)
 
-        print('accounts', decrypted_payload['result']['accounts'][0])
-
         account = decrypted_payload['result']['accounts'][0]
         nounce = 10
+
+        print('account', account)
 
         ack_message = get_websocket_message(peer_id, 'ack', '')
         await websocket.send(json.dumps(ack_message))
@@ -168,6 +168,7 @@ async def wc_test():
             'value': '0x00',
             'nonce': '0x0114',
         }
+        print('tx', tx)
         sign_request = get_sign_request(rpc_id, tx)
         rpc_id = rpc_id + 1
 
@@ -180,9 +181,14 @@ async def wc_test():
         payload['hmac'] = payload['hmac'].hex()
         payload['iv'] = payload['iv'].hex()
 
-        sign_message = get_websocket_message(peer_id, 'pub', json.dumps(payload))
+        sign_message = get_websocket_message(peer_id, 'pub', json.dumps(payload), False)
 
+        print('sign_message', sign_message)
+        print('sign_message', json.dumps(sign_message))
         await websocket.send(json.dumps(sign_message))
+
+        resp = await websocket.recv()
+        print(f'< {resp}')
 
 
 
