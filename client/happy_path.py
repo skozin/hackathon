@@ -73,7 +73,7 @@ async def wc_test():
 
 
         url_encoded = urllib.parse.quote('https://uniswap.bridge.walletconnect.org', safe='')
-        wc_uri = get_displayed_uri(handshake_uuid, url_encoded, hex_key)
+        wc_uri = 'wc:64896842-9de7-49a6-b02f-86846a304832@1?bridge=https%3A%2F%2Funiswap.bridge.walletconnect.org&key=6990358dc06e87f4b9c27999cf9eecb866a95de6bfe35dbb40204811b2fc3f49'
 
         print('rpc_id:', rpc_id)
         print('peer_id:', peer_id)
