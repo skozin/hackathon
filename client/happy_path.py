@@ -4,6 +4,7 @@ import asyncio
 import websockets
 import urllib.parse
 import crypto
+import re
 
 
 wc_bridge_uri = 'wss://uniswap.bridge.walletconnect.org/?env=browser&host=app.uniswap.org&protocol=wc&version=1'
@@ -58,6 +59,30 @@ def get_qr_link(uri):
     return f'https://api.qrserver.com/v1/create-qr-code/?size=300x300&{qr_data_encoded}'
 
 
+def hit_with_a_hammer(resp):
+    r_json = json.loads(str(resp))
+    r_json['payload'] = json.loads(r_json['payload'])
+    return r_json
+
+
+
+def decrypt_message(payload, key):
+    print('pk', payload, key)
+
+    data = bytearray.fromhex(payload['data'])
+    iv = bytearray.fromhex(payload['iv'])
+    hmac = bytearray.fromhex(payload['hmac'])
+
+    decrypted_payload = crypto.decrypt(
+        data,
+        iv,
+        hmac,
+        key
+    )
+
+    return json.loads(decrypted_payload.decode('utf-8'))
+
+
 async def wc_test():
     async with websockets.connect(wc_bridge_uri) as websocket:
         rpc_id = 0
@@ -73,7 +98,7 @@ async def wc_test():
 
 
         url_encoded = urllib.parse.quote('https://uniswap.bridge.walletconnect.org', safe='')
-        wc_uri = 'wc:64896842-9de7-49a6-b02f-86846a304832@1?bridge=https%3A%2F%2Funiswap.bridge.walletconnect.org&key=6990358dc06e87f4b9c27999cf9eecb866a95de6bfe35dbb40204811b2fc3f49'
+        wc_uri = get_displayed_uri(handshake_uuid, url_encoded, hex_key)
 
         print('rpc_id:', rpc_id)
         print('peer_id:', peer_id)
@@ -111,6 +136,15 @@ async def wc_test():
 
         resp = await websocket.recv()
         print(f'< {resp}')
+
+        json_resp = hit_with_a_hammer(resp)
+        print('resp', json_resp)
+
+        decrypted_payload = decrypt_message(json_resp['payload'], key)
+        print('decrypted_payload', decrypted_payload)
+
+        print('accounts', decrypted_payload['result']['accounts'][0])
+
 
         ack_message = get_websocket_message(peer_id, 'ack', '')
         await websocket.send(json.dumps(ack_message))
